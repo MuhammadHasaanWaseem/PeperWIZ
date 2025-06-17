@@ -25,7 +25,7 @@ const Onboarding = () => {
         <View style={styles.contentContainer}>
           <Animated.Text entering={FadeInDown.duration(800)} style={[styles.title]}>Peper Wiz</Animated.Text>
           <Animated.Text  entering={FadeInDown.duration(800)}style={[styles.subtitle]}>
-            It's not just a background, it's your silent expression
+            It's not just an Art Gallary, it's your silent expression
           </Animated.Text>
           <Animated.View entering={FadeInDown.duration(800)} style={{ width: '100%' }}>
             <TouchableOpacity onPress={() => router.push('/(tabs)')} style={styles.button}>
@@ -64,6 +64,8 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: '#333',
     marginBottom: hp(2),
+        fontStyle: 'italic',
+
   },
   subtitle: {
     fontSize: 14,
