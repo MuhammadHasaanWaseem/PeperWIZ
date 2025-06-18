@@ -15,7 +15,7 @@ const formatUrl = (params:any = {}) => {
     url += `&${key}=${value}`;
   });
 
-  console.log('Final URL:', url);
+  //console.log('Final URL:', url);
   return url;
 };
 
