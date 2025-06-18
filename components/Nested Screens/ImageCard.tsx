@@ -3,8 +3,25 @@ import * as FileSystem from 'expo-file-system';
 import { Image } from 'expo-image';
 import * as MediaLibrary from 'expo-media-library';
 import React, { useState } from 'react';
+<<<<<<< HEAD
 import { Alert, Modal, Platform, Pressable, Share, StyleSheet, TouchableOpacity, View } from 'react-native';
 import Animated, { SlideInRight, SlideInUp } from 'react-native-reanimated';
+=======
+import {
+  Alert,
+  Linking,
+  Modal,
+  Platform,
+  Pressable,
+  Share,
+  StatusBar,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+  useWindowDimensions,
+} from 'react-native';
+import Animated, { SlideInUp } from 'react-native-reanimated';
+>>>>>>> master
 import Icon from 'react-native-vector-icons/FontAwesome5';
 
 interface ImageCardProps {
@@ -20,6 +37,10 @@ interface ImageCardProps {
 
 const ImageCard: React.FC<ImageCardProps> = ({ item }) => {
   const [modalVisible, setModalVisible] = useState(false);
+<<<<<<< HEAD
+=======
+  const { width } = useWindowDimensions();
+>>>>>>> master
   const imageUrl = item.webformatURL || item.previewURL || item.largeImageURL;
 
   const getDynamicHeight = () => {
@@ -29,6 +50,19 @@ const ImageCard: React.FC<ImageCardProps> = ({ item }) => {
   };
 
   const handleDownload = async () => {
+<<<<<<< HEAD
+=======
+    if (Platform.OS === 'web') {
+      // Open image in new tab on web
+      if (imageUrl) {
+        Linking.openURL(imageUrl);
+      } else {
+        Alert.alert('Error', 'Image URL not found.');
+      }
+      return;
+    }
+
+>>>>>>> master
     try {
       const { status } = await MediaLibrary.requestPermissionsAsync();
       if (status !== 'granted') {
@@ -57,6 +91,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ item }) => {
     }
   };
 
+<<<<<<< HEAD
   return (
     <>
       <Animated.View entering={SlideInUp.delay(200).damping(2)}>
@@ -66,6 +101,20 @@ const ImageCard: React.FC<ImageCardProps> = ({ item }) => {
             transition={100}
             source={{ uri: imageUrl }}
             contentFit="cover"
+=======
+  const imageWidth = Platform.OS === 'web' ? width / 3 - 16 : 185;
+
+  return (
+    <>
+      <Animated.View entering={SlideInUp.delay(200).damping(2)}>
+        <StatusBar hidden={true} />
+        <TouchableOpacity onPress={() => setModalVisible(true)}>
+          <Image
+            source={{ uri: imageUrl }}
+            style={[styles.image, getDynamicHeight(), { width: imageWidth }]}
+            contentFit="cover"
+            transition={100}
+>>>>>>> master
           />
         </TouchableOpacity>
       </Animated.View>
@@ -80,6 +129,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ item }) => {
               contentFit="contain"
               transition={200}
             />
+<<<<<<< HEAD
             <Animated.View entering={SlideInRight.duration(300).damping(2)} style={styles.iconBar}>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
                 <Icon name="times" size={22} color="white" />
@@ -92,6 +142,19 @@ const ImageCard: React.FC<ImageCardProps> = ({ item }) => {
               </TouchableOpacity>
             </Animated.View>
             
+=======
+            <View style={styles.iconBar}>
+              <TouchableOpacity style={styles.iconBtn} onPress={() => setModalVisible(false)}>
+                <Icon name="times" size={20} color="#fff" />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.iconBtn} onPress={handleDownload}>
+                <Icon name="download" size={20} color="#fff" />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.iconBtn} onPress={handleShare}>
+                <Icon name="share-alt" size={20} color="#fff" />
+              </TouchableOpacity>
+            </View>
+>>>>>>> master
           </View>
         </View>
       </Modal>
@@ -103,6 +166,7 @@ export default ImageCard;
 
 const styles = StyleSheet.create({
   image: {
+<<<<<<< HEAD
     width: Platform.OS === 'web' ? '100%' : 185,
     margin: 3,
     borderRadius: 10,
@@ -116,6 +180,18 @@ const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.9)',
+=======
+    margin: 6,
+    borderRadius: 14,
+    backgroundColor: '#f2f2f2',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    overflow: 'hidden',
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.95)',
+>>>>>>> master
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -132,6 +208,7 @@ const styles = StyleSheet.create({
   },
   iconBar: {
     position: 'absolute',
+<<<<<<< HEAD
     bottom: '25%',
     left: 0,
     right: 0,
@@ -143,5 +220,28 @@ const styles = StyleSheet.create({
     borderRadius:30,
     padding: 10,
     
+=======
+    bottom: '5%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 30,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 50,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+  iconBtn: {
+    padding: 12,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+>>>>>>> master
   },
 });

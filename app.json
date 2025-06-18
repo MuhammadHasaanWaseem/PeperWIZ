@@ -1,10 +1,18 @@
 {
   "expo": {
+<<<<<<< HEAD
     "name": "WallWZiz",
     "slug": "WallWZiz",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
+=======
+    "name": "PepperWiz",
+    "slug": "WallWZiz",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/Appicon.png",
+>>>>>>> master
     "scheme": "wallwziz",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -28,7 +36,11 @@
       [
         "expo-splash-screen",
         {
+<<<<<<< HEAD
           "image": "./assets/images/splash-icon.png",
+=======
+          "image": "./assets/images/Appicon.png",
+>>>>>>> master
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"

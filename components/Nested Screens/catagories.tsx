@@ -260,4 +260,8 @@ const styles = StyleSheet.create({
   },
 });
 
+<<<<<<< HEAD
 export default Catagories;
+=======
+export default Catagories;
+>>>>>>> master
