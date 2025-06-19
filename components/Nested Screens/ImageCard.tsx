@@ -3,10 +3,6 @@ import * as FileSystem from 'expo-file-system';
 import { Image } from 'expo-image';
 import * as MediaLibrary from 'expo-media-library';
 import React, { useState } from 'react';
-<<<<<<< HEAD
-import { Alert, Modal, Platform, Pressable, Share, StyleSheet, TouchableOpacity, View } from 'react-native';
-import Animated, { SlideInRight, SlideInUp } from 'react-native-reanimated';
-=======
 import {
   Alert,
   Linking,
@@ -21,7 +17,6 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import Animated, { SlideInUp } from 'react-native-reanimated';
->>>>>>> master
 import Icon from 'react-native-vector-icons/FontAwesome5';
 
 interface ImageCardProps {
@@ -37,10 +32,7 @@ interface ImageCardProps {
 
 const ImageCard: React.FC<ImageCardProps> = ({ item }) => {
   const [modalVisible, setModalVisible] = useState(false);
-<<<<<<< HEAD
-=======
   const { width } = useWindowDimensions();
->>>>>>> master
   const imageUrl = item.webformatURL || item.previewURL || item.largeImageURL;
 
   const getDynamicHeight = () => {
@@ -50,8 +42,6 @@ const ImageCard: React.FC<ImageCardProps> = ({ item }) => {
   };
 
   const handleDownload = async () => {
-<<<<<<< HEAD
-=======
     if (Platform.OS === 'web') {
       // Open image in new tab on web
       if (imageUrl) {
@@ -62,7 +52,6 @@ const ImageCard: React.FC<ImageCardProps> = ({ item }) => {
       return;
     }
 
->>>>>>> master
     try {
       const { status } = await MediaLibrary.requestPermissionsAsync();
       if (status !== 'granted') {
@@ -91,17 +80,6 @@ const ImageCard: React.FC<ImageCardProps> = ({ item }) => {
     }
   };
 
-<<<<<<< HEAD
-  return (
-    <>
-      <Animated.View entering={SlideInUp.delay(200).damping(2)}>
-        <TouchableOpacity onPress={() => setModalVisible(true)}>
-          <Image
-            style={[styles.image, getDynamicHeight()]}
-            transition={100}
-            source={{ uri: imageUrl }}
-            contentFit="cover"
-=======
   const imageWidth = Platform.OS === 'web' ? width / 3 - 16 : 185;
 
   return (
@@ -114,7 +92,6 @@ const ImageCard: React.FC<ImageCardProps> = ({ item }) => {
             style={[styles.image, getDynamicHeight(), { width: imageWidth }]}
             contentFit="cover"
             transition={100}
->>>>>>> master
           />
         </TouchableOpacity>
       </Animated.View>
@@ -129,20 +106,6 @@ const ImageCard: React.FC<ImageCardProps> = ({ item }) => {
               contentFit="contain"
               transition={200}
             />
-<<<<<<< HEAD
-            <Animated.View entering={SlideInRight.duration(300).damping(2)} style={styles.iconBar}>
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <Icon name="times" size={22} color="white" />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={handleDownload}>
-                <Icon name="download" size={22} color="white" />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={handleShare}>
-                <Icon name="share-alt" size={22} color="white" />
-              </TouchableOpacity>
-            </Animated.View>
-            
-=======
             <View style={styles.iconBar}>
               <TouchableOpacity style={styles.iconBtn} onPress={() => setModalVisible(false)}>
                 <Icon name="times" size={20} color="#fff" />
@@ -154,7 +117,6 @@ const ImageCard: React.FC<ImageCardProps> = ({ item }) => {
                 <Icon name="share-alt" size={20} color="#fff" />
               </TouchableOpacity>
             </View>
->>>>>>> master
           </View>
         </View>
       </Modal>
@@ -166,21 +128,6 @@ export default ImageCard;
 
 const styles = StyleSheet.create({
   image: {
-<<<<<<< HEAD
-    width: Platform.OS === 'web' ? '100%' : 185,
-    margin: 3,
-    borderRadius: 10,
-    overflow: 'hidden',
-    backgroundColor: '#f0f0f0',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderColor: '#ccc',
-    borderWidth: 1,
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.9)',
-=======
     margin: 6,
     borderRadius: 14,
     backgroundColor: '#f2f2f2',
@@ -191,7 +138,6 @@ const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.95)',
->>>>>>> master
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -208,19 +154,6 @@ const styles = StyleSheet.create({
   },
   iconBar: {
     position: 'absolute',
-<<<<<<< HEAD
-    bottom: '25%',
-    left: 0,
-    right: 0,
-    height: 60,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent:'center',
-    gap: 50,
-    borderRadius:30,
-    padding: 10,
-    
-=======
     bottom: '5%',
     flexDirection: 'row',
     alignItems: 'center',
@@ -242,6 +175,5 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.15)',
     alignItems: 'center',
     justifyContent: 'center',
->>>>>>> master
   },
 });
