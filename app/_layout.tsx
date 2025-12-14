@@ -21,6 +21,49 @@ export default function RootLayout() {
           name="index"
           options={{ headerShown: false, animation:'slide_from_left' }}/>
         <Stack.Screen name="(tabs)" options={{ headerShown: false,  animation: 'slide_from_left'}} />
+        <Stack.Screen 
+          name="ai-screen" 
+          options={{ 
+            headerShown: false, 
+            animation: 'slide_from_bottom',
+            presentation: 'modal'
+          }} 
+        />
+        <Stack.Screen 
+          name="favorites" 
+          options={{ 
+            headerShown: false, 
+            animation: 'slide_from_right'
+          }} 
+        />
+        <Stack.Screen 
+          name="settings" 
+          options={{ 
+            headerShown: false, 
+            animation: 'slide_from_right'
+          }} 
+        />
+        <Stack.Screen 
+          name="about" 
+          options={{ 
+            headerShown: false, 
+            animation: 'slide_from_right'
+          }} 
+        />
+        <Stack.Screen 
+          name="filters" 
+          options={{ 
+            headerShown: false, 
+            animation: 'slide_from_right'
+          }} 
+        />
+        <Stack.Screen 
+          name="privacy-policy" 
+          options={{ 
+            headerShown: false, 
+            animation: 'slide_from_right'
+          }} 
+        />
         <Stack.Screen name="+not-found" />
       </Stack>
   );

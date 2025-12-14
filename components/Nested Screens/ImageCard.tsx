@@ -1,8 +1,10 @@
 import { getimageheight } from '@/helpers/dimensions';
+import { isFavorite, removeFavorite, saveFavorite } from '@/helpers/favoritesStorage';
+import { FontAwesome6 } from '@expo/vector-icons';
 import * as FileSystem from 'expo-file-system';
 import { Image } from 'expo-image';
 import * as MediaLibrary from 'expo-media-library';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Alert,
   Linking,
@@ -32,8 +34,18 @@ interface ImageCardProps {
 
 const ImageCard: React.FC<ImageCardProps> = ({ item }) => {
   const [modalVisible, setModalVisible] = useState(false);
+  const [isFavorited, setIsFavorited] = useState(false);
   const { width } = useWindowDimensions();
   const imageUrl = item.webformatURL || item.previewURL || item.largeImageURL;
+
+  useEffect(() => {
+    checkFavoriteStatus();
+  }, [item]);
+
+  const checkFavoriteStatus = async () => {
+    const favorited = await isFavorite(item);
+    setIsFavorited(favorited);
+  };
 
   const getDynamicHeight = () => {
     let { imageHeight = 350, imageWidth = 185 } = item;
@@ -80,19 +92,38 @@ const ImageCard: React.FC<ImageCardProps> = ({ item }) => {
     }
   };
 
+  const handleToggleFavorite = async () => {
+    try {
+      if (isFavorited) {
+        await removeFavorite(item);
+        setIsFavorited(false);
+      } else {
+        await saveFavorite(item);
+        setIsFavorited(true);
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update favorite');
+    }
+  };
+
   const imageWidth = Platform.OS === 'web' ? width / 3 - 16 : 185;
 
   return (
     <>
       <Animated.View entering={SlideInUp.delay(200).damping(2)}>
-        <StatusBar hidden={true} />
-        <TouchableOpacity onPress={() => setModalVisible(true)}>
+        <StatusBar barStyle="dark-content" hidden={false}   />
+        <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.imageContainer}>
           <Image
             source={{ uri: imageUrl }}
             style={[styles.image, getDynamicHeight(), { width: imageWidth }]}
             contentFit="cover"
             transition={100}
           />
+          {isFavorited && (
+            <View style={styles.favoriteBadge}>
+              <FontAwesome6 name="heart" size={14} color="#ff3040" solid />
+            </View>
+          )}
         </TouchableOpacity>
       </Animated.View>
 
@@ -109,6 +140,17 @@ const ImageCard: React.FC<ImageCardProps> = ({ item }) => {
             <View style={styles.iconBar}>
               <TouchableOpacity style={styles.iconBtn} onPress={() => setModalVisible(false)}>
                 <Icon name="times" size={20} color="#fff" />
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.iconBtn, isFavorited && styles.favoriteBtnActive]} 
+                onPress={handleToggleFavorite}
+              >
+                <FontAwesome6 
+                  name={isFavorited ? "heart" : "heart"} 
+                  size={20} 
+                  color={isFavorited ? "#ff3040" : "#fff"} 
+                  solid={isFavorited}
+                />
               </TouchableOpacity>
               <TouchableOpacity style={styles.iconBtn} onPress={handleDownload}>
                 <Icon name="download" size={20} color="#fff" />
@@ -127,6 +169,9 @@ const ImageCard: React.FC<ImageCardProps> = ({ item }) => {
 export default ImageCard;
 
 const styles = StyleSheet.create({
+  imageContainer: {
+    position: 'relative',
+  },
   image: {
     margin: 6,
     borderRadius: 14,
@@ -134,6 +179,22 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ddd',
     overflow: 'hidden',
+  },
+  favoriteBadge: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 5,
   },
   modalContainer: {
     flex: 1,
@@ -175,5 +236,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.15)',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  favoriteBtnActive: {
+    backgroundColor: 'rgba(255, 48, 64, 0.3)',
   },
 });

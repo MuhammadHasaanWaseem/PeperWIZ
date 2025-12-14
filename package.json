@@ -5,6 +5,10 @@
   "scripts": {
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
+    "scrape-image": "node ./scripts/scrape-image.js",
+    "scrape-pinterest": "node ./scripts/scrape-pinterest.js",
+    "scrape-pinterest-advanced": "node ./scripts/scrape-pinterest-advanced.js",
+    "fetch-pinterest-urls": "node ./scripts/fetch-pinterest-urls.js",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
@@ -12,6 +16,7 @@
   },
   "dependencies": {
     "@expo/vector-icons": "^14.1.0",
+    "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-navigation/bottom-tabs": "^7.3.10",
     "@react-navigation/elements": "^2.3.8",
     "@react-navigation/native": "^7.1.6",

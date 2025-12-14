@@ -1,20 +1,22 @@
-import FilterActionSheet from '@/ActionSheets/FilterActionSheet';
 import { apiCall } from '@/Api/fetchapi';
+import FloatingButton from '@/components/FloatingButton';
 import Catagories from '@/components/Nested Screens/catagories';
 import Imagegrid from '@/components/Nested Screens/Imagegrid';
 import { hp, wp } from '@/helpers/dimensions';
 import { FontAwesome6 } from '@expo/vector-icons';
-import React, { useEffect } from 'react';
-import { Image, Platform, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import React, { useCallback, useEffect } from 'react';
+import { Image, Modal, Platform, Pressable, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Animated, { BounceInLeft, FadeOut } from 'react-native-reanimated';
 import Icon from 'react-native-vector-icons/FontAwesome';
 
 const HomeScreen = () => {
+  const params = useLocalSearchParams();
   const [searchText, setSearchText] = React.useState('');
   const searcinputRef = React.useRef<TextInput>(null);
   const [activeCategory, setActiveCategory] = React.useState('backgrounds');
   const [images, setImages] = React.useState<any[]>([]);
-  const [filterActionSheetVisible, setFilterActionSheetVisible] = React.useState(false);
+  const [menuVisible, setMenuVisible] = React.useState(false);
 
   // Filter states
   const [selectedImageType, setSelectedImageType] = React.useState('all');
@@ -23,6 +25,9 @@ const HomeScreen = () => {
   const [selectedOrder, setSelectedOrder] = React.useState('popular');
 
   const [totalResults, setTotalResults] = React.useState(0);
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const [isLoadingMore, setIsLoadingMore] = React.useState(false);
+  const [hasMoreImages, setHasMoreImages] = React.useState(true);
 
   const handleactiveCategory = (category: string) => {
     setActiveCategory(category);
@@ -37,21 +42,82 @@ const HomeScreen = () => {
     fetchData();
   }, []);
 
+  // Listen for filter updates when returning from filters page
+  useFocusEffect(
+    useCallback(() => {
+      if (params.applied === 'true') {
+        // Update filter states from params
+        if (params.imageType) setSelectedImageType(params.imageType as string);
+        if (params.category) setSelectedCategory(params.category as string);
+        if (params.colors) {
+          const colorsArray = (params.colors as string).split(',').filter(c => c);
+          setSelectedColors(colorsArray);
+        }
+        if (params.order) setSelectedOrder(params.order as string);
+        
+        // Apply filters
+        fetchimages({
+          category: (params.category as string) || selectedCategory,
+          q: searchText,
+          image_type: (params.imageType as string) || selectedImageType,
+          colors: params.colors ? (params.colors as string) : selectedColors.join(','),
+          order: (params.order as string) || selectedOrder,
+          page: 1
+        }, false);
+        
+        // Clear the applied flag
+        router.setParams({ applied: undefined });
+      }
+    }, [params.applied, params.imageType, params.category, params.colors, params.order])
+  );
+
   const fetchimages = async (params: Record<string, any> = { page: 1 }, append = true) => {
-    let response = await apiCall(params);
+    const page = params.page || 1;
+    
+    if (append) {
+      setIsLoadingMore(true);
+    }
+
+    let response = await apiCall({ ...params, page, useMultipleSources: true });
 
     if (response.success && Array.isArray(response.data)) {
       if (append) {
         setImages(prevImages => [...prevImages, ...response.data]);
       } else {
         setImages([...response.data]);
+        setCurrentPage(1);
       }
+      
       // Set total results if available
-      if ('totalHits' in response && typeof response.totalHits === 'number') {
+      if (response.totalHits && typeof response.totalHits === 'number') {
         setTotalResults(response.totalHits);
-      } else if (response.data.length !== undefined) {
-        setTotalResults(response.data.length);
+        // Check if there are more images to load
+        const totalLoaded = append ? images.length + response.data.length : response.data.length;
+        setHasMoreImages(totalLoaded < response.totalHits && response.data.length > 0);
+      } else {
+        setTotalResults(append ? images.length + response.data.length : response.data.length);
+        setHasMoreImages(response.data.length > 0);
       }
+      
+      if (append) {
+        setCurrentPage(page);
+      }
+    }
+    
+    setIsLoadingMore(false);
+  }
+
+  const loadMoreImages = () => {
+    if (!isLoadingMore && hasMoreImages) {
+      const nextPage = currentPage + 1;
+      fetchimages({
+        category: selectedCategory,
+        q: searchText,
+        image_type: selectedImageType,
+        colors: selectedColors.join(','),
+        order: selectedOrder,
+        page: nextPage
+      }, true);
     }
   }
 
@@ -62,6 +128,22 @@ const HomeScreen = () => {
 
   const handleApplyFilter = () => {
     fetchimages({ category: selectedCategory, q: searchText, image_type: selectedImageType, colors: selectedColors.join(','), order: selectedOrder, page: 1 }, false);
+  }
+
+  const navigateToFilters = () => {
+    router.push({
+      pathname: '/filters',
+      params: {
+        imageType: selectedImageType,
+        category: selectedCategory,
+        colors: selectedColors.join(','),
+        order: selectedOrder,
+      },
+    });
+  };
+
+  const handleFloatingButtonPress = () => {
+    router.push('/ai-screen');
   }
 
   return (
@@ -78,9 +160,14 @@ const HomeScreen = () => {
           <Text style={styles.logoText}>Pepper</Text>
           <Text style={styles.logoText2}>Wiz</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => setFilterActionSheetVisible(true)}>
-          <FontAwesome6 name="bars-staggered" size={24} color="black" />
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', gap: wp(3) }}>
+          <TouchableOpacity onPress={() => router.push('/favorites')}>
+            <FontAwesome6 name="heart" size={24} color="black" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setMenuVisible(true)}>
+            <FontAwesome6 name="ellipsis-vertical" size={24} color="black" />
+          </TouchableOpacity>
+        </View>
       </View>
       <ScrollView contentContainerStyle={{ gap: hp(2) }}>
         <Animated.View entering={BounceInLeft.duration(699)} style={{
@@ -185,20 +272,97 @@ const HomeScreen = () => {
             />
           )}
         </View>
+        
+        {/* Load More Button */}
+        {images.length > 0 && hasMoreImages && (
+          <View style={styles.loadMoreContainer}>
+            <TouchableOpacity
+              style={[styles.loadMoreButton, isLoadingMore && styles.loadMoreButtonDisabled]}
+              onPress={loadMoreImages}
+              disabled={isLoadingMore}
+            >
+              {isLoadingMore ? (
+                <Text style={styles.loadMoreText}>Loading...</Text>
+              ) : (
+                <Text style={styles.loadMoreText}>Load More Images</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
+        
+        {images.length > 0 && !hasMoreImages && (
+          <View style={styles.endMessageContainer}>
+            <Text style={styles.endMessageText}>No more images to load</Text>
+          </View>
+        )}
       </ScrollView>
-      <FilterActionSheet
-        visible={filterActionSheetVisible}
-        onClose={() => setFilterActionSheetVisible(false)}
-        onApply={handleApplyFilter}
-        selectedImageType={selectedImageType}
-        setSelectedImageType={setSelectedImageType}
-        selectedCategory={selectedCategory}
-        setSelectedCategory={setSelectedCategory}
-        selectedColors={selectedColors}
-        setSelectedColors={setSelectedColors}
-        selectedOrder={selectedOrder}
-        setSelectedOrder={setSelectedOrder}
+      <FloatingButton 
+        onPress={handleFloatingButtonPress}
+        imageUri="https://i.pinimg.com/736x/59/cd/b2/59cdb2d00d15b6d2eb09a4e97ffae850.jpg"
       />
+      
+      {/* Menu Modal */}
+      <Modal
+        visible={menuVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setMenuVisible(false)}
+      >
+        <Pressable style={styles.menuOverlay} onPress={() => setMenuVisible(false)}>
+          <View style={styles.menuContainer}>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                setMenuVisible(false);
+                router.push('/favorites');
+              }}
+            >
+              <FontAwesome6 name="heart" size={20} color="#000" />
+              <Text style={styles.menuItemText}>Favorites</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                setMenuVisible(false);
+                router.push('/settings');
+              }}
+            >
+              <FontAwesome6 name="gear" size={20} color="#000" />
+              <Text style={styles.menuItemText}>Settings</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                setMenuVisible(false);
+                router.push('/about');
+              }}
+            >
+              <FontAwesome6 name="circle-info" size={20} color="#000" />
+              <Text style={styles.menuItemText}>About</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                setMenuVisible(false);
+                navigateToFilters();
+              }}
+            >
+              <FontAwesome6 name="bars-staggered" size={20} color="#000" />
+              <Text style={styles.menuItemText}>Filters</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[styles.menuItem, styles.menuItemClose]}
+              onPress={() => setMenuVisible(false)}
+            >
+              <Text style={styles.menuItemCloseText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   )
 }
@@ -267,5 +431,72 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: 'grey',
     fontStyle: 'italic'
+  },
+  menuOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  menuContainer: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: hp(2),
+    paddingBottom: Platform.OS === 'ios' ? hp(4) : hp(2),
+    paddingHorizontal: wp(4),
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: wp(3),
+    paddingVertical: hp(2),
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  menuItemText: {
+    fontSize: hp(2),
+    fontWeight: '700',
+    color: '#000',
+  },
+  menuItemClose: {
+    borderBottomWidth: 0,
+    marginTop: hp(1),
+    paddingVertical: hp(1.5),
+    alignItems: 'center',
+  },
+  menuItemCloseText: {
+    fontSize: hp(1.8),
+    fontWeight: '700',
+    color: '#666',
+  },
+  loadMoreContainer: {
+    paddingVertical: hp(3),
+    paddingHorizontal: wp(4),
+    alignItems: 'center',
+  },
+  loadMoreButton: {
+    backgroundColor: '#000',
+    paddingVertical: hp(2),
+    paddingHorizontal: wp(8),
+    borderRadius: 18,
+    minWidth: wp(60),
+    alignItems: 'center',
+  },
+  loadMoreButtonDisabled: {
+    opacity: 0.6,
+  },
+  loadMoreText: {
+    color: '#fff',
+    fontSize: hp(2),
+    fontWeight: '700',
+  },
+  endMessageContainer: {
+    paddingVertical: hp(2),
+    alignItems: 'center',
+  },
+  endMessageText: {
+    fontSize: hp(1.8),
+    color: '#666',
+    fontStyle: 'italic',
   },
 });
