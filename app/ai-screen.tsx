@@ -1,486 +1,166 @@
-import React, { useState, useRef, useEffect } from 'react';
+import FloatingButton from '@/components/FloatingButton';
+import { hp, wp } from '@/helpers/dimensions';
+import { FontAwesome6 } from '@expo/vector-icons';
+import axios from 'axios';
+import * as FileSystem from 'expo-file-system';
+import { Image as ExpoImage } from 'expo-image';
+import * as MediaLibrary from 'expo-media-library';
+import { router } from 'expo-router';
+import React, { useEffect, useRef, useState } from 'react';
 import {
-  View,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Linking,
+  Modal,
+  Platform,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  StatusBar,
-  Platform,
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Image,
-  Alert,
-  Keyboard,
+  View
 } from 'react-native';
-import { router } from 'expo-router';
-import { hp, wp } from '@/helpers/dimensions';
-import { FontAwesome6 } from '@expo/vector-icons';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
-import { Image as ExpoImage } from 'expo-image';
-import axios from 'axios';
-import { apiCall } from '@/Api/fetchapi';
-
-interface Message {
-  id: string;
-  text: string;
-  isUser: boolean;
-  timestamp: Date;
-}
 
 const AIScreen = () => {
-  const [activeTab, setActiveTab] = useState<'generate' | 'chat'>('generate');
-  const [prompt, setPrompt] = useState('');
-  const [chatMessage, setChatMessage] = useState('');
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
-  const [pinterestImages, setPinterestImages] = useState<any[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [chatMessages, setChatMessages] = useState<Message[]>([
-    {
-      id: '1',
-      text: 'Hello! I\'m your AI assistant. How can I help you today?',
-      isUser: false,
-      timestamp: new Date(),
-    },
-  ]);
-  const [isChatLoading, setIsChatLoading] = useState(false);
-  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportImageUrl, setReportImageUrl] = useState<string | null>(null);
+  const [reportReason, setReportReason] = useState('');
+  const [showActionSheet, setShowActionSheet] = useState(false);
+  const [pexelsImages, setPexelsImages] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [downloadingImageId, setDownloadingImageId] = useState<string | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
-  const messagesScrollRef = useRef<ScrollView>(null);
 
-  // Keyboard visibility listeners
+  // Load curated images on mount
   useEffect(() => {
-    const keyboardWillShow = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
-      () => {
-        setIsKeyboardVisible(true);
-      }
-    );
-
-    const keyboardWillHide = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
-      () => {
-        setIsKeyboardVisible(false);
-      }
-    );
-
-    return () => {
-      keyboardWillShow.remove();
-      keyboardWillHide.remove();
-    };
+    fetchPexelsImages('nature');
   }, []);
 
-  // Search images using Pixabay API (already in app) and Pinterest as fallback
-  const searchPinterestImages = async () => {
-    if (!prompt.trim()) {
-      Alert.alert('Error', 'Please enter a search query');
-      return;
-    }
-
+  // Fetch images from Pexels API
+  const fetchPexelsImages = async (query: string = 'nature') => {
     setIsGenerating(true);
-    setPinterestImages([]);
+    setPexelsImages([]);
     setGeneratedImage(null);
 
     try {
-      // Method 1: Use Pixabay API (already configured in app)
-      try {
-        const pixabayResponse = await apiCall({
-          q: prompt,
-          per_page: 50,
-          image_type: 'photo',
-          order: 'popular',
-        });
-
-        if (pixabayResponse.success && pixabayResponse.data && pixabayResponse.data.length > 0) {
-          const images = pixabayResponse.data.map((img: any) => ({
-            id: img.id || `img-${Date.now()}-${Math.random()}`,
-            webformatURL: img.webformatURL || img.largeImageURL,
-            largeImageURL: img.largeImageURL || img.webformatURL,
-            previewURL: img.previewURL || img.webformatURL,
-            imageWidth: img.imageWidth || 0,
-            imageHeight: img.imageHeight || 0,
-            tags: img.tags || prompt,
-            user: img.user || 'Pixabay',
-            likes: img.likes || 0,
-          }));
-
-          setPinterestImages(images);
-          setIsGenerating(false);
-          return;
-        }
-      } catch (pixabayError) {
-        console.log('Pixabay API failed, trying Pinterest...');
-      }
-
-      // Method 2: Try Pinterest with better headers
-      try {
-        const baseUrl = 'https://www.pinterest.com/resource/SearchResource/get/';
-        const params = new URLSearchParams({
-          source_url: `/search/pins/?q=${encodeURIComponent(prompt)}&rs=typed`,
-          data: JSON.stringify({
-            options: {
-              query: prompt,
-              scope: 'pins',
-              page_size: 50,
-            },
-            context: {},
-          }),
-        });
-
-        const url = `${baseUrl}?${params.toString()}`;
-
-        const response = await axios.get(url, {
+      const PEXELS_API_KEY = 'NQHsjZnCgp0xCFGWCMjtz3K7zom40Usm765TQ1GUOKYbMS3yDfMyvwSQ';
+      const response = await axios.get(
+        `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=80&page=1`,
+        {
           headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'application/json, text/plain, */*',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Referer': 'https://www.pinterest.com/',
-            'Origin': 'https://www.pinterest.com',
-            'Connection': 'keep-alive',
-            'Sec-Fetch-Dest': 'empty',
-            'Sec-Fetch-Mode': 'cors',
-            'Sec-Fetch-Site': 'same-origin',
-            'Cache-Control': 'no-cache',
+            'Authorization': PEXELS_API_KEY,
           },
-          timeout: 30000,
-        });
-
-        if (response.data?.resource_response?.data?.results) {
-          const pins = response.data.resource_response.data.results;
-          const images = pins
-            .filter((pin: any) => pin.images)
-            .map((pin: any) => {
-              const sizes = ['originals', '736x', '564x', '474x', '236x'];
-              let imageUrl = '';
-              let imageWidth = 0;
-              let imageHeight = 0;
-
-              for (const size of sizes) {
-                if (pin.images[size] && pin.images[size].url) {
-                  imageUrl = pin.images[size].url;
-                  imageWidth = pin.images[size].width || 0;
-                  imageHeight = pin.images[size].height || 0;
-                  break;
-                }
-              }
-
-              return {
-                id: pin.id || `pin-${Date.now()}-${Math.random()}`,
-                webformatURL: imageUrl,
-                largeImageURL: imageUrl,
-                previewURL: pin.images?.['236x']?.url || imageUrl,
-                imageWidth: imageWidth,
-                imageHeight: imageHeight,
-                tags: pin.description || pin.title || prompt,
-                user: pin.creator?.username || 'Pinterest',
-                likes: pin.aggregated_pin_data?.aggregated_stats?.saves || 0,
-              };
-            })
-            .filter((img: any) => img.webformatURL);
-
-          if (images.length > 0) {
-            setPinterestImages(images);
-            setIsGenerating(false);
-            return;
-          }
         }
-      } catch (pinterestError: any) {
-        console.log('Pinterest search error:', pinterestError.message);
-        // Continue to fallback
-      }
+      );
 
-      // Fallback: Show error with suggestion
-      Alert.alert(
-        'Search Failed',
-        'Unable to fetch images right now. Please try:\n• Check your internet connection\n• Try a different search term\n• Make sure Pixabay API key is configured',
-        [{ text: 'OK' }]
-      );
+      if (response.data?.photos && response.data.photos.length > 0) {
+        const images = response.data.photos.map((photo: any) => ({
+          id: photo.id,
+          webformatURL: photo.src.large,
+          previewURL: photo.src.medium,
+          largeImageURL: photo.src.original || photo.src.large2x,
+          imageWidth: photo.width,
+          imageHeight: photo.height,
+          tags: photo.alt || query,
+          user: photo.photographer,
+          photographer_url: photo.photographer_url,
+          photo_url: photo.url,
+          avg_color: photo.avg_color,
+          likes: 0,
+        }));
+
+        setPexelsImages(images);
+      }
     } catch (error: any) {
-      console.error('Image search error:', error);
-      Alert.alert(
-        'Search Failed',
-        'An error occurred while searching. Please try again.',
-        [{ text: 'OK' }]
-      );
+      console.error('Pexels API error:', error);
+      setErrorMessage('Failed to fetch images from Pexels. Please try again.');
+      setShowErrorModal(true);
     } finally {
       setIsGenerating(false);
     }
   };
 
-  // API Keys array with rotation support
-  const openRouterApiKeys = [
-    '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',
-    'sk-abcdef1234567890abcdef1234567890abcdef12',
-    'sk-1234567890abcdef1234567890abcdef12345678',
-    'sk-abcdefabcdefabcdefabcdefabcdefabcdef12',
-    'sk-7890abcdef7890abcdef7890abcdef7890abcd',
-    'sk-1234abcd1234abcd1234abcd1234abcd1234abcd',
-    'sk-abcd1234abcd1234abcd1234abcd1234abcd1234',
-    'sk-5678efgh5678efgh5678efgh5678efgh5678efgh',
-    'sk-efgh5678efgh5678efgh5678efgh5678efgh5678',
-    'sk-ijkl1234ijkl1234ijkl1234ijkl1234ijkl1234',
-    'sk-mnop5678mnop5678mnop5678mnop5678mnop5678',
-    'sk-qrst1234qrst1234qrst1234qrst1234qrst1234',
-    'sk-uvwx5678uvwx5678uvwx5678uvwx5678uvwx5678',
-    'sk-1234ijkl1234ijkl1234ijkl1234ijkl1234ijkl',
-    'sk-5678mnop5678mnop5678mnop5678mnop5678mnop',
-    'sk-qrst5678qrst5678qrst5678qrst5678qrst5678',
-    'sk-uvwx1234uvwx1234uvwx1234uvwx1234uvwx1234',
-    'sk-1234abcd5678efgh1234abcd5678efgh1234abcd',
-    'sk-5678ijkl1234mnop5678ijkl1234mnop5678ijkl',
-    'sk-abcdqrstefghuvwxabcdqrstefghuvwxabcdqrst',
-    'sk-ijklmnop1234qrstijklmnop1234qrstijklmnop',
-    'sk-1234uvwx5678abcd1234uvwx5678abcd1234uvwx',
-    'sk-efghijkl5678mnopabcd1234efghijkl5678mnop',
-    'sk-mnopqrstuvwxabcdmnopqrstuvwxabcdmnopqrst',
-    'sk-ijklmnopqrstuvwxijklmnopqrstuvwxijklmnop',
-    'sk-abcd1234efgh5678abcd1234efgh5678abcd1234',
-    'sk-1234ijklmnop5678ijklmnop1234ijklmnop5678',
-    'sk-qrstefghuvwxabcdqrstefghuvwxabcdqrstefgh',
-    'sk-uvwxijklmnop1234uvwxijklmnop1234uvwxijkl',
-    'sk-abcd5678efgh1234abcd5678efgh1234abcd5678',
-    'sk-ijklmnopqrstuvwxijklmnopqrstuvwxijklmnop',
-    'sk-1234qrstuvwxabcd1234qrstuvwxabcd1234qrst',
-    'sk-efghijklmnop5678efghijklmnop5678efghijkl',
-    'sk-mnopabcd1234efghmnopabcd1234efghmnopabcd',
-    'sk-ijklqrst5678uvwxijklqrst5678uvwxijklqrst',
-    'sk-1234ijkl5678mnop1234ijkl5678mnop1234ijkl',
-    'sk-abcdqrstefgh5678abcdqrstefgh5678abcdqrst',
-    'sk-ijklmnopuvwx1234ijklmnopuvwx1234ijklmnop',
-    'sk-efgh5678abcd1234efgh5678abcd1234efgh5678',
-    'sk-mnopqrstijkl5678mnopqrstijkl5678mnopqrst',
-    'sk-1234uvwxabcd5678uvwxabcd1234uvwxabcd5678',
-    'sk-ijklmnop5678efghijklmnop5678efghijklmnop',
-    'sk-abcd1234qrstuvwxabcd1234qrstuvwxabcd1234',
-    'sk-1234efgh5678ijkl1234efgh5678ijkl1234efgh',
-    'sk-5678mnopqrstuvwx5678mnopqrstuvwx5678mnop',
-    'sk-abcdijkl1234uvwxabcdijkl1234uvwxabcdijkl',
-    'sk-ijklmnopabcd5678ijklmnopabcd5678ijklmnop',
-    'sk-1234efghqrstuvwx1234efghqrstuvwx1234efgh',
-    'sk-5678ijklmnopabcd5678ijklmnopabcd5678ijkl',
-    'sk-abcd1234efgh5678abcd1234efgh5678abcd1234',
-    'sk-ijklmnopqrstuvwxijklmnopqrstuvwxijklmnop',
-  ];
+  const handleActionSheetOption = (option: string) => {
+    setShowActionSheet(false);
+    fetchPexelsImages(option);
+  };
 
-  // Track current API key index
-  const [currentApiKeyIndex, setCurrentApiKeyIndex] = useState(0);
-
-  // Chat with AI using OpenRouter API with key rotation
-  const sendChatMessage = async () => {
-    if (!chatMessage.trim()) return;
-
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      text: chatMessage,
-      isUser: true,
-      timestamp: new Date(),
-    };
-
-    setChatMessages(prev => [...prev, userMessage]);
-    const currentMessage = chatMessage;
-    setChatMessage('');
-    setIsChatLoading(true);
-
-    // Scroll to bottom
-    setTimeout(() => {
-      messagesScrollRef.current?.scrollToEnd({ animated: true });
-    }, 100);
-
-    // Build conversation history for context
-    const conversationHistory = chatMessages
-      .slice(-10) // Last 10 messages for context
-      .map(msg => ({
-        role: msg.isUser ? 'user' : 'assistant',
-        content: msg.text,
-      }));
-
-    // Add current message
-    conversationHistory.push({
-      role: 'user',
-      content: currentMessage,
-    });
-
-    // Try each API key until one works
-    let lastError: any = null;
-    let success = false;
-
-    for (let i = 0; i < openRouterApiKeys.length; i++) {
-      const keyIndex = (currentApiKeyIndex + i) % openRouterApiKeys.length;
-      const apiKey = openRouterApiKeys[keyIndex];
-
-      try {
-        const openRouterResponse = await axios.post(
-          'https://openrouter.ai/api/v1/chat/completions',
-          {
-            model: 'openai/gpt-3.5-turbo',
-            messages: conversationHistory,
-            temperature: 0.7,
-            max_tokens: 4000, // Further increased to prevent cutting
-            stream: false, // Ensure complete response
-          },
-          {
-            headers: {
-              'Authorization': `Bearer ${apiKey}`,
-              'Content-Type': 'application/json',
-              'HTTP-Referer': 'https://pepperwiz.app',
-              'X-Title': 'PepperWiz AI Chat',
-            },
-            timeout: 60000, // Increased timeout for longer responses
-          }
-        );
-
-        let aiResponse = '';
-        const choice = openRouterResponse.data?.choices?.[0];
-        
-        // Check if response was cut off
-        const finishReason = choice?.finish_reason;
-        if (finishReason === 'length') {
-          console.log('Response was cut due to token limit, trying with higher limit...');
-          // Retry with even higher limit
-          const retryResponse = await axios.post(
-            'https://openrouter.ai/api/v1/chat/completions',
-            {
-              model: 'openai/gpt-3.5-turbo',
-              messages: conversationHistory,
-              temperature: 0.7,
-              max_tokens: 8000, // Very high limit
-              stream: false,
-            },
-            {
-              headers: {
-                'Authorization': `Bearer ${apiKey}`,
-                'Content-Type': 'application/json',
-                'HTTP-Referer': 'https://pepperwiz.app',
-                'X-Title': 'PepperWiz AI Chat',
-              },
-              timeout: 60000,
-            }
-          );
-          const retryChoice = retryResponse.data?.choices?.[0];
-          if (retryChoice?.message?.content) {
-            aiResponse = retryChoice.message.content;
-          }
-        }
-        
-        // Handle different response formats
-        if (!aiResponse) {
-          if (choice?.message?.content) {
-            aiResponse = choice.message.content;
-          } else if (choice?.text) {
-            aiResponse = choice.text;
-          } else if (openRouterResponse.data?.choices?.[0]?.text) {
-            aiResponse = openRouterResponse.data.choices[0].text;
-          } else if (typeof openRouterResponse.data === 'string') {
-            aiResponse = openRouterResponse.data;
-          } else {
-            throw new Error('No response content found');
-          }
-        }
-
-        // Ensure complete response (not cut off) - check if it ends properly
-        if (aiResponse && aiResponse.trim().length > 0) {
-          // If response seems cut off (doesn't end with punctuation), append indicator
-          const trimmedResponse = aiResponse.trim();
-          const endsWithPunctuation = /[.!?。！？]$/.test(trimmedResponse);
-          
-          // If finish reason was length and response doesn't end properly, it might be cut
-          if (finishReason === 'length' && !endsWithPunctuation && trimmedResponse.length > 100) {
-            // Response might be cut, but we'll use what we have
-            console.log('Response may be truncated, but using available content');
-          }
-
-          const aiMessage: Message = {
-            id: (Date.now() + 1).toString(),
-            text: trimmedResponse,
-            isUser: false,
-            timestamp: new Date(),
-          };
-
-          setChatMessages(prev => [...prev, aiMessage]);
-          setCurrentApiKeyIndex(keyIndex); // Update to working key
-          success = true;
-          // Scroll to bottom after message is added
-          setTimeout(() => {
-            messagesScrollRef.current?.scrollToEnd({ animated: true });
-          }, 200);
-          break;
-        } else {
-          throw new Error('Empty response');
-        }
-      } catch (error: any) {
-        lastError = error;
-        
-        // If it's an auth error (401/403), try next key
-        if (error.response?.status === 401 || error.response?.status === 403) {
-          console.log(`API key ${keyIndex + 1} expired or invalid, trying next...`);
-          continue; // Try next key
-        }
-        
-        // If it's a rate limit (429), try next key
-        if (error.response?.status === 429) {
-          console.log(`API key ${keyIndex + 1} rate limited, trying next...`);
-          continue;
-        }
-        
-        // For other errors, also try next key
-        console.log(`API key ${keyIndex + 1} failed: ${error.message}, trying next...`);
-        continue;
-      }
+  const handleDownloadImage = async (imageUrl: string, imageId?: string) => {
+    if (Platform.OS === 'web') {
+      // Open image in new tab on web
+      Linking.openURL(imageUrl);
+      return;
     }
 
-    // If all keys failed, use fallback
-    if (!success) {
-      console.error('All API keys failed, using fallback');
-      
-      const lowerMessage = currentMessage.toLowerCase();
-      let fallbackResponse = '';
+    try {
+      // Request permissions
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      if (status !== 'granted') {
+        setErrorMessage('Permission Denied. Please allow storage access to download images.');
+        setShowErrorModal(true);
+        return;
+      }
 
-      if (lowerMessage.includes('hello') || lowerMessage.includes('hi') || lowerMessage.includes('hey')) {
-        fallbackResponse = 'Hello! 👋 I\'m your AI assistant. How can I help you today?';
-      } else if (lowerMessage.includes('help') || lowerMessage.includes('what can you')) {
-        fallbackResponse = 'I can help you with:\n• Searching images (use the Generate tab)\n• Answering questions\n• Having conversations\n\nWhat would you like to do?';
-      } else if (lowerMessage.includes('image') || lowerMessage.includes('search')) {
-        fallbackResponse = 'To search images, go to the "Generate" tab above and enter a search term like "beautiful sunset" or "nature wallpapers". I\'ll find great images for you!';
-      } else if (lowerMessage.includes('thank') || lowerMessage.includes('thanks')) {
-        fallbackResponse = 'You\'re very welcome! 😊 Is there anything else I can help you with?';
-      } else if (lowerMessage.includes('app') || lowerMessage.includes('what is')) {
-        fallbackResponse = 'This is PepperWiz - an AI-powered image gallery and search app! You can browse wallpapers, search images, and chat with me. What would you like to explore?';
-      } else if (lowerMessage.includes('how are you')) {
-        fallbackResponse = 'I\'m doing great, thank you for asking! I\'m here and ready to help you with images, questions, or just chat. How can I assist you?';
-      } else if (lowerMessage.includes('bye') || lowerMessage.includes('goodbye')) {
-        fallbackResponse = 'Goodbye! 👋 Feel free to come back anytime. Have a great day!';
+      if (imageId) {
+        setDownloadingImageId(imageId);
       } else {
-        const responses = [
-          'I understand. Could you tell me more about what you\'re looking for?',
-          'That\'s interesting! How can I help you with that?',
-          'I see. What would you like to do next?',
-          'Got it! Is there anything specific you need help with?',
-        ];
-        fallbackResponse = responses[Math.floor(Math.random() * responses.length)];
+        setIsGenerating(true);
       }
+      
+      // Download image
+      const fileUri = FileSystem.documentDirectory + `pexels_${Date.now()}.jpg`;
+      const downloadResult = await FileSystem.downloadAsync(imageUrl, fileUri);
 
-      const fallbackMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        text: lastError?.response?.status === 401 || lastError?.response?.status === 403
-          ? 'I apologize, but all API keys seem to be expired. Please update the API keys.'
-          : fallbackResponse,
-        isUser: false,
-        timestamp: new Date(),
-      };
+      // Save to media library
+      const asset = await MediaLibrary.createAssetAsync(downloadResult.uri);
+      await MediaLibrary.createAlbumAsync('PepperWiz', asset, false);
 
-      setChatMessages(prev => [...prev, fallbackMessage]);
-      // Scroll to bottom after fallback message
-      setTimeout(() => {
-        messagesScrollRef.current?.scrollToEnd({ animated: true });
-      }, 200);
+      setErrorMessage('Image saved to gallery successfully!');
+      setShowErrorModal(true);
+    } catch (error: any) {
+      console.error('Download error:', error);
+      setErrorMessage('Failed to download image. Please try again.');
+      setShowErrorModal(true);
+    } finally {
+      if (imageId) {
+        setDownloadingImageId(null);
+      } else {
+        setIsGenerating(false);
+      }
     }
+  };
 
-    setIsChatLoading(false);
-    setTimeout(() => {
-      messagesScrollRef.current?.scrollToEnd({ animated: true });
-    }, 300);
+  const handleSearch = () => {
+    if (searchQuery.trim()) {
+      fetchPexelsImages(searchQuery.trim());
+    }
+  };
+
+  const handleReportImage = (imageUrl: string) => {
+    setReportImageUrl(imageUrl);
+    setShowReportModal(true);
+  };
+
+  const submitReport = () => {
+    if (!reportReason.trim()) {
+      setErrorMessage('Please provide a reason for reporting');
+      setShowErrorModal(true);
+      return;
+    }
+    
+    // Here you would typically send the report to your backend
+    console.log('Report submitted:', { imageUrl: reportImageUrl, reason: reportReason });
+    setShowReportModal(false);
+    setReportReason('');
+    setReportImageUrl(null);
+    setErrorMessage('Thank you for your report. We will review it shortly.');
+    setShowErrorModal(true);
   };
 
   return (
@@ -495,31 +175,10 @@ const AIScreen = () => {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <FontAwesome6 name="arrow-left" size={24} color="#000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>AI Studio</Text>
+        <Text style={styles.headerTitle}>Pixels</Text>
         <View style={{ width: 40 }} />
       </View>
 
-      {/* Tabs */}
-      <View style={styles.tabContainer}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'generate' && styles.activeTab]}
-          onPress={() => setActiveTab('generate')}
-        >
-          <FontAwesome6 name="image" size={20} color={activeTab === 'generate' ? '#000' : '#666'} />
-          <Text style={[styles.tabText, activeTab === 'generate' && styles.activeTabText]}>
-            Generate
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'chat' && styles.activeTab]}
-          onPress={() => setActiveTab('chat')}
-        >
-          <FontAwesome6 name="comments" size={20} color={activeTab === 'chat' ? '#000' : '#666'} />
-          <Text style={[styles.tabText, activeTab === 'chat' && styles.activeTabText]}>
-            Chat
-          </Text>
-        </TouchableOpacity>
-      </View>
 
       {/* Content */}
       <ScrollView
@@ -528,53 +187,57 @@ const AIScreen = () => {
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
-        {activeTab === 'generate' ? (
-          <View style={styles.generateContainer}>
-            <Text style={styles.sectionTitle}>Image Search</Text>
-            <Text style={styles.sectionSubtitle}>
-              Search for high-quality images
-            </Text>
+        <View style={styles.generateContainer}>
+          <Text style={styles.sectionTitle}>Pexels Images</Text>
+          <Text style={styles.sectionSubtitle}>
+            High-quality free stock photos
+          </Text>
 
+          {/* Search Bar */}
+          <View style={styles.searchContainer}>
             <TextInput
-              style={styles.promptInput}
-              placeholder="e.g., beautiful sunset, nature wallpapers, anime art"
+              style={styles.searchInput}
+              placeholder="Search images..."
               placeholderTextColor="#999"
-              value={prompt}
-              onChangeText={setPrompt}
-              multiline
-              numberOfLines={3}
-              textAlignVertical="top"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              onSubmitEditing={handleSearch}
+              returnKeyType="search"
             />
-
             <TouchableOpacity
-              style={[styles.generateButton, isGenerating && styles.generateButtonDisabled]}
-              onPress={searchPinterestImages}
-              disabled={isGenerating}
+              style={styles.searchButton}
+              onPress={handleSearch}
+              disabled={!searchQuery.trim() || isGenerating}
             >
-              {isGenerating ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <>
-                  <FontAwesome6 name="magnifying-glass" size={20} color="#fff" />
-                  <Text style={styles.generateButtonText}>Search Images</Text>
-                </>
-              )}
+              <FontAwesome6 name="magnifying-glass" size={18} color="#fff" />
             </TouchableOpacity>
+          </View>
 
             {isGenerating && (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color="#000" />
-                <Text style={styles.loadingText}>Searching images...</Text>
+                <Text style={styles.loadingText}>Loading images...</Text>
               </View>
             )}
 
-            {pinterestImages.length > 0 && (
+            {pexelsImages.length > 0 && (
               <Animated.View entering={FadeIn} style={styles.resultsContainer}>
+                <View style={styles.pexelsAttribution}>
+                  <Text style={styles.pexelsAttributionText}>
+                    Photos provided by{' '}
+                    <Text 
+                      style={styles.pexelsLink}
+                      onPress={() => Linking.openURL('https://www.pexels.com')}
+                    >
+                      Pexels
+                    </Text>
+                  </Text>
+                </View>
                 <Text style={styles.resultsTitle}>
-                  Found {pinterestImages.length} images
+                  Found {pexelsImages.length} images
                 </Text>
                 <View style={styles.imagesGrid}>
-                  {pinterestImages.map((image, index) => (
+                  {pexelsImages.map((image, index) => (
                     <TouchableOpacity
                       key={image.id || index}
                       style={styles.imageCard}
@@ -587,6 +250,34 @@ const AIScreen = () => {
                         style={styles.gridImage}
                         contentFit="cover"
                       />
+                      <View style={styles.imageOverlay}>
+                        <Text style={styles.photographerText} numberOfLines={1}>
+                          Photo by {image.user}
+                        </Text>
+                      </View>
+                      <TouchableOpacity
+                        style={styles.downloadIconButton}
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          handleDownloadImage(image.largeImageURL || image.webformatURL, image.id?.toString());
+                        }}
+                        disabled={downloadingImageId === image.id?.toString()}
+                      >
+                        {downloadingImageId === image.id?.toString() ? (
+                          <ActivityIndicator size="small" color="#fff" />
+                        ) : (
+                          <FontAwesome6 name="download" size={14} color="#fff" />
+                        )}
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.reportIconButton}
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          handleReportImage(image.largeImageURL || image.webformatURL);
+                        }}
+                      >
+                        <FontAwesome6 name="flag" size={14} color="#fff" />
+                      </TouchableOpacity>
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -600,94 +291,178 @@ const AIScreen = () => {
                   style={styles.generatedImage}
                   contentFit="contain"
                 />
-                <TouchableOpacity
-                  style={styles.downloadButton}
-                  onPress={() => {
-                    Alert.alert('Download', 'Image download feature coming soon!');
-                  }}
-                >
-                  <FontAwesome6 name="download" size={18} color="#fff" />
-                  <Text style={styles.downloadButtonText}>Save</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.closeButton}
-                  onPress={() => setGeneratedImage(null)}
-                >
-                  <FontAwesome6 name="xmark" size={18} color="#fff" />
-                </TouchableOpacity>
+                <View style={styles.imageActions}>
+                  <TouchableOpacity
+                    style={styles.downloadButton}
+                    onPress={() => handleDownloadImage(generatedImage)}
+                    disabled={isGenerating}
+                  >
+                    {isGenerating ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <>
+                        <FontAwesome6 name="download" size={18} color="#fff" />
+                        <Text style={styles.downloadButtonText}>Save</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.reportButton}
+                    onPress={() => handleReportImage(generatedImage)}
+                  >
+                    <FontAwesome6 name="flag" size={18} color="#fff" />
+                    <Text style={styles.reportButtonText}>Report</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.closeButton}
+                    onPress={() => setGeneratedImage(null)}
+                  >
+                    <FontAwesome6 name="xmark" size={18} color="#fff" />
+                  </TouchableOpacity>
+                </View>
+                {/* Pexels Attribution */}
+                <View style={styles.pexelsImageAttribution}>
+                  <Text style={styles.pexelsImageAttributionText}>
+                    Photo provided by{' '}
+                    <Text 
+                      style={styles.pexelsImageLink}
+                      onPress={() => Linking.openURL('https://www.pexels.com')}
+                    >
+                      Pexels
+                    </Text>
+                  </Text>
+                </View>
               </Animated.View>
             )}
-          </View>
-        ) : (
-          <View style={[
-            styles.chatContainer,
-            isKeyboardVisible ? styles.chatContainerKeyboardOpen : styles.chatContainerKeyboardClosed
-          ]}>
-            <Text style={styles.sectionTitle}>AI Chat Assistant</Text>
-            <Text style={styles.sectionSubtitle}>
-              Ask me anything!
-            </Text>
 
-            <ScrollView
-              ref={messagesScrollRef}
-              style={styles.messagesContainer}
-              contentContainerStyle={styles.messagesContent}
-              keyboardShouldPersistTaps="handled"
-              onContentSizeChange={() => {
-                messagesScrollRef.current?.scrollToEnd({ animated: true });
-              }}
-              showsVerticalScrollIndicator={true}
-            >
-              {chatMessages.map((message) => (
-                <Animated.View
-                  key={message.id}
-                  entering={FadeIn}
-                  style={[
-                    styles.messageBubble,
-                    message.isUser ? styles.userMessage : styles.aiMessage,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.messageText,
-                      message.isUser ? styles.userMessageText : styles.aiMessageText,
-                    ]}
-                  >
-                    {message.text}
-                  </Text>
-                </Animated.View>
-              ))}
-              {isChatLoading && (
-                <View style={[styles.messageBubble, styles.aiMessage]}>
-                  <ActivityIndicator size="small" color="#666" />
-                </View>
-              )}
-            </ScrollView>
+            {!isGenerating && pexelsImages.length === 0 && (
+              <View style={styles.emptyContainer}>
+                <FontAwesome6 name="image" size={48} color="#ccc" />
+                <Text style={styles.emptyText}>Tap the floating button to browse images</Text>
+              </View>
+            )}
           </View>
-        )}
       </ScrollView>
 
-      {/* Input Area */}
-      {activeTab === 'chat' && (
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.chatInput}
-            placeholder="Type your message..."
-            placeholderTextColor="#999"
-            value={chatMessage}
-            onChangeText={setChatMessage}
-            multiline
-            maxLength={500}
-          />
-          <TouchableOpacity
-            style={[styles.sendButton, !chatMessage.trim() && styles.sendButtonDisabled]}
-            onPress={sendChatMessage}
-            disabled={!chatMessage.trim() || isChatLoading}
-          >
-            <FontAwesome6 name="paper-plane" size={18} color="#fff" />
-          </TouchableOpacity>
+      {/* Error Modal */}
+      <Modal
+        visible={showErrorModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowErrorModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Notice</Text>
+            <Text style={styles.modalText}>{errorMessage}</Text>
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={() => setShowErrorModal(false)}
+            >
+              <Text style={styles.modalButtonText}>OK</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      )}
+      </Modal>
+
+      {/* Floating Button */}
+      <FloatingButton
+        onPress={() => setShowActionSheet(true)}
+        icon="plus"
+        iconSize={28}
+        iconColor="#000"
+      />
+
+      {/* Action Sheet Modal */}
+      <Modal
+        visible={showActionSheet}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowActionSheet(false)}
+      >
+        <TouchableOpacity
+          style={styles.actionSheetOverlay}
+          activeOpacity={1}
+          onPress={() => setShowActionSheet(false)}
+        >
+          <View style={styles.actionSheetContent}>
+            <View style={styles.actionSheetHeader}>
+              <Text style={styles.actionSheetTitle}>Browse Images</Text>
+              <TouchableOpacity onPress={() => setShowActionSheet(false)}>
+                <FontAwesome6 name="xmark" size={24} color="#000" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.actionSheetOptions}>
+              {['Nature', 'Animals', 'People', 'Architecture', 'Travel', 'Food', 'Technology', 'Art', 'Sports', 'Business', 'Fashion', 'Music'].map((option) => (
+                <TouchableOpacity
+                  key={option}
+                  style={styles.actionSheetOption}
+                  onPress={() => handleActionSheetOption(option.toLowerCase())}
+                >
+                  <Text style={styles.actionSheetOptionText}>{option}</Text>
+                  <FontAwesome6 name="chevron-right" size={16} color="#666" />
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Report Image Modal */}
+      <Modal
+        visible={showReportModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowReportModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.reportModalContent}>
+            <View style={styles.reportModalHeader}>
+              <Text style={styles.reportModalTitle}>Report Image</Text>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowReportModal(false);
+                  setReportReason('');
+                  setReportImageUrl(null);
+                }}
+              >
+                <FontAwesome6 name="xmark" size={24} color="#000" />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.reportModalSubtitle}>
+              Please provide a reason for reporting this image
+            </Text>
+            <TextInput
+              style={styles.reportInput}
+              placeholder="Enter reason..."
+              placeholderTextColor="#999"
+              value={reportReason}
+              onChangeText={setReportReason}
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+            />
+            <View style={styles.reportModalFooter}>
+              <TouchableOpacity
+                style={styles.reportCancelButton}
+                onPress={() => {
+                  setShowReportModal(false);
+                  setReportReason('');
+                  setReportImageUrl(null);
+                }}
+              >
+                <Text style={styles.reportCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.reportSubmitButton}
+                onPress={submitReport}
+              >
+                <Text style={styles.reportSubmitText}>Submit</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 };
@@ -945,6 +720,292 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.7)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  skeletonContainer: {
+    marginTop: hp(2),
+    width: '100%',
+    height: hp(40),
+    borderRadius: 18,
+    overflow: 'hidden',
+  },
+  skeletonImage: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#e0e0e0',
+  },
+  imageActions: {
+    position: 'absolute',
+    bottom: hp(2),
+    left: wp(4),
+    right: wp(4),
+    flexDirection: 'row',
+    gap: wp(2),
+    justifyContent: 'center',
+  },
+  reportButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: wp(2),
+    backgroundColor: 'rgba(255,0,0,0.7)',
+    paddingHorizontal: wp(4),
+    paddingVertical: hp(1),
+    borderRadius: 12,
+  },
+  reportButtonText: {
+    color: '#fff',
+    fontSize: hp(1.6),
+    fontWeight: '700',
+  },
+  downloadIconButton: {
+    position: 'absolute',
+    top: wp(2),
+    left: wp(2),
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  reportIconButton: {
+    position: 'absolute',
+    top: wp(2),
+    right: wp(2),
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,0,0,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    gap: wp(2),
+    marginTop: hp(2),
+    marginBottom: hp(1),
+  },
+  searchInput: {
+    flex: 1,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 12,
+    paddingHorizontal: wp(4),
+    paddingVertical: hp(1.5),
+    fontSize: hp(1.8),
+    color: '#000',
+  },
+  searchButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 12,
+    backgroundColor: '#000',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: wp(6),
+    width: '85%',
+    maxWidth: 400,
+  },
+  modalTitle: {
+    fontSize: hp(2.5),
+    fontWeight: '900',
+    color: '#000',
+    marginBottom: hp(2),
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+  modalText: {
+    fontSize: hp(1.8),
+    color: '#666',
+    lineHeight: hp(2.5),
+    marginBottom: hp(3),
+    textAlign: 'center',
+  },
+  modalButton: {
+    backgroundColor: '#000',
+    paddingVertical: hp(1.5),
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  modalButtonText: {
+    color: '#fff',
+    fontSize: hp(2),
+    fontWeight: '700',
+  },
+  reportModalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: wp(4),
+    width: '100%',
+    maxHeight: hp(60),
+  },
+  reportModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: hp(2),
+  },
+  reportModalTitle: {
+    fontSize: hp(2.5),
+    fontWeight: '900',
+    color: '#000',
+    fontStyle: 'italic',
+  },
+  reportModalSubtitle: {
+    fontSize: hp(1.8),
+    color: '#666',
+    marginBottom: hp(2),
+  },
+  reportInput: {
+    backgroundColor: '#f0f0f0',
+    borderRadius: 12,
+    padding: wp(4),
+    fontSize: hp(1.8),
+    color: '#000',
+    minHeight: hp(12),
+    marginBottom: hp(3),
+  },
+  reportModalFooter: {
+    flexDirection: 'row',
+    gap: wp(2),
+  },
+  reportCancelButton: {
+    flex: 1,
+    paddingVertical: hp(1.5),
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#000',
+    alignItems: 'center',
+  },
+  reportCancelText: {
+    fontSize: hp(1.8),
+    fontWeight: '700',
+    color: '#000',
+  },
+  reportSubmitButton: {
+    flex: 1,
+    paddingVertical: hp(1.5),
+    borderRadius: 12,
+    backgroundColor: '#000',
+    alignItems: 'center',
+  },
+  reportSubmitText: {
+    fontSize: hp(1.8),
+    fontWeight: '700',
+    color: '#fff',
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: hp(10),
+    gap: hp(2),
+  },
+  emptyText: {
+    fontSize: hp(1.8),
+    color: '#999',
+    textAlign: 'center',
+  },
+  actionSheetOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  actionSheetContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: hp(70),
+    paddingBottom: Platform.OS === 'ios' ? hp(4) : hp(2),
+  },
+  actionSheetHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: wp(4),
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  actionSheetTitle: {
+    fontSize: hp(2.5),
+    fontWeight: '900',
+    color: '#000',
+    fontStyle: 'italic',
+  },
+  actionSheetOptions: {
+    maxHeight: hp(60),
+  },
+  actionSheetOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: wp(4),
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  actionSheetOptionText: {
+    fontSize: hp(2),
+    fontWeight: '600',
+    color: '#000',
+  },
+  pexelsAttribution: {
+    padding: wp(4),
+    backgroundColor: '#f0f0f0',
+    borderRadius: 12,
+    marginBottom: hp(2),
+    alignItems: 'center',
+  },
+  pexelsAttributionText: {
+    fontSize: hp(1.6),
+    color: '#666',
+    textAlign: 'center',
+  },
+  pexelsLink: {
+    color: '#000',
+    fontWeight: '700',
+    textDecorationLine: 'underline',
+  },
+  imageOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    paddingVertical: hp(0.5),
+    paddingHorizontal: wp(2),
+  },
+  photographerText: {
+    fontSize: hp(1.2),
+    color: '#fff',
+    fontWeight: '600',
+  },
+  pexelsImageAttribution: {
+    position: 'absolute',
+    top: hp(2),
+    left: wp(4),
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    paddingHorizontal: wp(3),
+    paddingVertical: hp(0.5),
+    borderRadius: 8,
+  },
+  pexelsImageAttributionText: {
+    fontSize: hp(1.4),
+    color: '#666',
+  },
+  pexelsImageLink: {
+    color: '#000',
+    fontWeight: '700',
+    textDecorationLine: 'underline',
   },
 });
 

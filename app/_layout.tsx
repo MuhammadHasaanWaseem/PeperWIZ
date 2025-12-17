@@ -58,7 +58,22 @@ export default function RootLayout() {
           }} 
         />
         <Stack.Screen 
+          name="musify" 
+          options={{ 
+            headerShown: false, 
+            animation: 'slide_from_bottom',
+            presentation: 'modal'
+          }} 
+        />
+        <Stack.Screen 
           name="privacy-policy" 
+          options={{ 
+            headerShown: false, 
+            animation: 'slide_from_right'
+          }} 
+        />
+        <Stack.Screen 
+          name="terms-of-service" 
           options={{ 
             headerShown: false, 
             animation: 'slide_from_right'

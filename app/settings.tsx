@@ -17,8 +17,6 @@ import { getSettings, saveSettings } from '@/helpers/settingsStorage';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
 const SettingsScreen = () => {
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [autoDownload, setAutoDownload] = useState(false);
   const [highQuality, setHighQuality] = useState(true);
 
   useEffect(() => {
@@ -27,19 +25,7 @@ const SettingsScreen = () => {
 
   const loadSettings = async () => {
     const settings = await getSettings();
-    setNotificationsEnabled(settings.notificationsEnabled);
-    setAutoDownload(settings.autoDownload);
     setHighQuality(settings.highQuality);
-  };
-
-  const handleNotificationToggle = async (value: boolean) => {
-    setNotificationsEnabled(value);
-    await saveSettings({ notificationsEnabled: value });
-  };
-
-  const handleAutoDownloadToggle = async (value: boolean) => {
-    setAutoDownload(value);
-    await saveSettings({ autoDownload: value });
   };
 
   const handleHighQualityToggle = async (value: boolean) => {
@@ -56,7 +42,7 @@ const SettingsScreen = () => {
   };
 
   const handleTerms = () => {
-    Alert.alert('Terms of Service', 'By using PepperWiz, you agree to our terms of service.');
+    router.push('/terms-of-service');
   };
 
   const handleClearCache = () => {
@@ -137,36 +123,6 @@ const SettingsScreen = () => {
             <Text style={styles.sectionTitle}>Preferences</Text>
             
             <View style={styles.sectionContent}>
-              <SettingItem
-                icon="bell"
-                title="Notifications"
-                subtitle="Get notified about new wallpapers"
-                rightComponent={
-                  <Switch
-                    value={notificationsEnabled}
-                    onValueChange={handleNotificationToggle}
-                    trackColor={{ false: '#ddd', true: '#000' }}
-                    thumbColor="#fff"
-                  />
-                }
-                showArrow={false}
-              />
-              
-              <SettingItem
-                icon="download"
-                title="Auto Download"
-                subtitle="Automatically download when saving"
-                rightComponent={
-                  <Switch
-                    value={autoDownload}
-                    onValueChange={handleAutoDownloadToggle}
-                    trackColor={{ false: '#ddd', true: '#000' }}
-                    thumbColor="#fff"
-                  />
-                }
-                showArrow={false}
-              />
-              
               <SettingItem
                 icon="image"
                 title="High Quality"

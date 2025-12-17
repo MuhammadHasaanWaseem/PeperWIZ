@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Public API Keys (Free tier)
 const PIXABAY_API_KEY = process.env.EXPO_PUBLIC_API_KEY || '50843965-e86a3a948eccd30b42feac8d7'; // Public demo key
-const PEXELS_API_KEY = process.env.EXPO_PUBLIC_PEXELS_KEY || 'your-pexels-key'; // Get free key from pexels.com/api
+const PEXELS_API_KEY = process.env.EXPO_PUBLIC_PEXELS_KEY || 'NQHsjZnCgp0xCFGWCMjtz3K7zom40Usm765TQ1GUOKYbMS3yDfMyvwSQ'; // Get free key from pexels.com/api
 const UNSPLASH_ACCESS_KEY = process.env.EXPO_PUBLIC_UNSPLASH_KEY || 'your-unsplash-key'; // Get free key from unsplash.com/developers
 
 // Pixabay API

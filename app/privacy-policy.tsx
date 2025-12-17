@@ -173,7 +173,7 @@ const PrivacyPolicyScreen = () => {
               If you have any questions about this Privacy Policy, please contact us:
             </Text>
             <View style={styles.contactContainer}>
-              <Text style={styles.contactText}>Email: support@pepperwiz.app</Text>
+              <Text style={styles.contactText}>Email: muhammadhasaanwaseem@gmail.com</Text>
               <Text style={styles.contactText}>App: PepperWiz</Text>
             </View>
           </View>

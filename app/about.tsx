@@ -17,17 +17,6 @@ import { Image } from 'expo-image';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
 const AboutScreen = () => {
-  const handleRateApp = () => {
-    Alert.alert('Rate App', 'Thank you for your interest! Rating feature coming soon.');
-  };
-
-  const handleShareApp = async () => {
-    try {
-      await Linking.openURL('https://pepperwiz.app');
-    } catch (error) {
-      console.error('Error sharing app:', error);
-    }
-  };
 
   return (
     <View style={styles.container}>
@@ -102,20 +91,18 @@ const AboutScreen = () => {
             </View>
           </View>
 
-          {/* Actions */}
-          <View style={styles.actionsContainer}>
-            <TouchableOpacity style={styles.actionButton} onPress={handleRateApp}>
-              <FontAwesome6 name="star" size={20} color="#fff" />
-              <Text style={styles.actionButtonText}>Rate App</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[styles.actionButton, styles.actionButtonSecondary]} 
-              onPress={handleShareApp}
-            >
-              <FontAwesome6 name="share" size={20} color="#000" />
-              <Text style={[styles.actionButtonText, styles.actionButtonTextSecondary]}>Share App</Text>
-            </TouchableOpacity>
+          {/* Customer Support */}
+          <View style={styles.supportContainer}>
+            <Text style={styles.sectionTitle}>Customer Support</Text>
+            <View style={styles.supportCard}>
+              <FontAwesome6 name="envelope" size={24} color="#000" />
+              <TouchableOpacity 
+                onPress={() => Linking.openURL('mailto:muhammadhasaanwaseem@gmail.com')}
+                style={styles.emailButton}
+              >
+                <Text style={styles.emailText}>muhammadhasaanwaseem@gmail.com</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Footer */}
@@ -230,32 +217,27 @@ const styles = StyleSheet.create({
     color: '#666',
     flex: 1,
   },
-  actionsContainer: {
+  supportContainer: {
     paddingHorizontal: wp(4),
-    gap: hp(2),
     marginBottom: hp(4),
   },
-  actionButton: {
+  supportCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: wp(2),
-    backgroundColor: '#000',
-    paddingVertical: hp(2),
+    gap: wp(3),
+    backgroundColor: '#f0f0f0',
+    padding: wp(4),
     borderRadius: 18,
-  },
-  actionButtonSecondary: {
-    backgroundColor: '#fff',
     borderWidth: 1,
-    borderColor: '#000',
+    borderColor: '#e0e0e0',
   },
-  actionButtonText: {
-    color: '#fff',
-    fontSize: hp(2),
-    fontWeight: '700',
+  emailButton: {
+    flex: 1,
   },
-  actionButtonTextSecondary: {
+  emailText: {
+    fontSize: hp(1.8),
     color: '#000',
+    fontWeight: '600',
   },
   footer: {
     alignItems: 'center',

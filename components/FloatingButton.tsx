@@ -11,7 +11,24 @@ interface FloatingButtonProps {
   iconSize?: number;
   iconColor?: string;
   imageUri?: string;
+  position?: 'left' | 'center' | 'right';
 }
+
+const getContainerStyle = (position: 'left' | 'center' | 'right') => {
+  const baseStyle = {
+    zIndex: 1000,
+  };
+
+  switch (position) {
+    case 'left':
+      return { ...baseStyle, position: 'absolute' as const, bottom: hp(3), left: wp(6) };
+    case 'right':
+      return { ...baseStyle, position: 'absolute' as const, bottom: hp(3), right: wp(6) };
+    case 'center':
+    default:
+      return baseStyle;
+  }
+};
 
 const FloatingButton: React.FC<FloatingButtonProps> = ({
   onPress,
@@ -19,6 +36,7 @@ const FloatingButton: React.FC<FloatingButtonProps> = ({
   iconSize = 28,
   iconColor = '#000',
   imageUri,
+  position = 'center',
 }) => {
   const scale = useSharedValue(1);
 
@@ -37,7 +55,7 @@ const FloatingButton: React.FC<FloatingButtonProps> = ({
   };
 
   return (
-    <Animated.View style={[styles.container, animatedStyle]}>
+    <Animated.View style={[getContainerStyle(position), animatedStyle]}>
       <TouchableOpacity
         style={styles.button}
         onPress={onPress}
@@ -61,12 +79,6 @@ const FloatingButton: React.FC<FloatingButtonProps> = ({
 };
 
 const styles = StyleSheet.create({
-  container: {
-    position: 'absolute',
-    bottom: hp(3),
-    alignSelf: 'center',
-    zIndex: 1000,
-  },
   button: {
     width: 64,
     height: 64,
@@ -82,8 +94,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
-    // borderWidth: 1,
-    // borderColor: '#f0f0f0',
     overflow: 'hidden',
   },
   image: {
@@ -94,4 +104,3 @@ const styles = StyleSheet.create({
 });
 
 export default FloatingButton;
-

@@ -296,10 +296,20 @@ const HomeScreen = () => {
           </View>
         )}
       </ScrollView>
-      <FloatingButton 
-        onPress={handleFloatingButtonPress}
-        imageUri="https://i.pinimg.com/736x/59/cd/b2/59cdb2d00d15b6d2eb09a4e97ffae850.jpg"
-      />
+      <View style={styles.floatingButtonsContainer}>
+        <FloatingButton 
+          onPress={handleFloatingButtonPress}
+          imageUri="https://i.pinimg.com/736x/59/cd/b2/59cdb2d00d15b6d2eb09a4e97ffae850.jpg"
+          position="center"
+        />
+        <FloatingButton 
+          onPress={() => router.push('/musify')}
+          icon="music"
+          iconSize={28}
+          iconColor="#000"
+          position="center"
+        />
+      </View>
       
       {/* Menu Modal */}
       <Modal
@@ -498,5 +508,16 @@ const styles = StyleSheet.create({
     fontSize: hp(1.8),
     color: '#666',
     fontStyle: 'italic',
+  },
+  floatingButtonsContainer: {
+    position: 'absolute',
+    bottom: hp(3),
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: wp(4),
+    zIndex: 1000,
   },
 });
