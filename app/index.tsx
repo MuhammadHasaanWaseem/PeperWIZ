@@ -1,17 +1,27 @@
 import { hp, wp } from '@/helpers/dimensions';
-import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
-import React, { useState } from 'react';
-import { Image, Platform, StyleSheet, TouchableOpacity, View, Text, Modal, ScrollView } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import useInterstitialAd from '@/hooks/useInterstitialAd';
 import { FontAwesome6 } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { Image, Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
 const TERMS_ACCEPTED_KEY = '@pepperwiz_terms_accepted';
 
 const Onboarding = () => {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
+  const { showAd } = useInterstitialAd();
+
+  // Show interstitial ad when app opens
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      showAd();
+    }, 2000); // Show ad after 2 seconds delay
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleStartExploring = async () => {
     if (!termsAccepted) {

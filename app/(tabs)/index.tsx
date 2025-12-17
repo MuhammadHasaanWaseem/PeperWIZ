@@ -1,4 +1,5 @@
 import { apiCall } from '@/Api/fetchapi';
+import BannerAd from '@/components/BannerAd';
 import FloatingButton from '@/components/FloatingButton';
 import Catagories from '@/components/Nested Screens/catagories';
 import Imagegrid from '@/components/Nested Screens/Imagegrid';
@@ -296,6 +297,7 @@ const HomeScreen = () => {
           </View>
         )}
       </ScrollView>
+      <BannerAd />
       <View style={styles.floatingButtonsContainer}>
         <FloatingButton 
           onPress={handleFloatingButtonPress}

@@ -1,5 +1,7 @@
+import BannerAd from '@/components/BannerAd';
 import FloatingButton from '@/components/FloatingButton';
 import { hp, wp } from '@/helpers/dimensions';
+import useInterstitialAd from '@/hooks/useInterstitialAd';
 import { FontAwesome6 } from '@expo/vector-icons';
 import axios from 'axios';
 import * as FileSystem from 'expo-file-system';
@@ -36,6 +38,15 @@ const AIScreen = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [downloadingImageId, setDownloadingImageId] = useState<string | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
+  const { showAd } = useInterstitialAd();
+
+  // Show interstitial ad when screen opens
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      showAd();
+    }, 1000); // Show ad after 1 second delay
+    return () => clearTimeout(timer);
+  }, []);
 
   // Load curated images on mount
   useEffect(() => {
@@ -364,6 +375,9 @@ const AIScreen = () => {
           </View>
         </View>
       </Modal>
+
+      {/* Banner Ad */}
+      <BannerAd />
 
       {/* Floating Button */}
       <FloatingButton

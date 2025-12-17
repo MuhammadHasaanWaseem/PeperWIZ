@@ -1,18 +1,19 @@
 import { hp, wp } from '@/helpers/dimensions';
+import useInterstitialAd from '@/hooks/useInterstitialAd';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-  Image,
-  Platform,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    Image,
+    Platform,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 // Using a custom slider implementation with buttons
 
@@ -48,6 +49,15 @@ const MusifyScreen = () => {
   const [masterVolume, setMasterVolume] = useState(1);
   const [isMasterPlaying, setIsMasterPlaying] = useState(false);
   const [masterVolumeBarWidth, setMasterVolumeBarWidth] = useState(200);
+  const { showAd } = useInterstitialAd();
+
+  // Show interstitial ad when screen opens
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      showAd();
+    }, 1000); // Show ad after 1 second delay
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     // Initialize sounds

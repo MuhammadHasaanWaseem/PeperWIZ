@@ -1,5 +1,8 @@
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
+import { useEffect } from 'react';
+import { Platform } from 'react-native';
+import mobileAds from 'react-native-google-mobile-ads';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
@@ -9,6 +12,14 @@ export default function RootLayout() {
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
+
+  // Initialize Google Mobile Ads SDK
+  useEffect(() => {
+    const initializeAds = async () => {
+      await mobileAds().initialize();
+    };
+    initializeAds();
+  }, []);
 
   if (!loaded) {
     // Async font loading only occurs in development.
